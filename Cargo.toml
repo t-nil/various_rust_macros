@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "proc_macros",
+    "decl_macros",
+]
+
+resolver = "2"
