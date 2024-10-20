@@ -26,7 +26,7 @@ pub mod insta {
     // linux, where arbitrary bytes work.
     //
     // (stolen from https://github.com/rust-lang/cargo/pull/9226/files#diff-9977238c61100eb9f319febd88e2434b304ac401f0da3b50d00d7c91de319e2fR2957-R2966)
-    pub fn generate_non_utf8_path<T>() -> PathBuf {
+    pub fn generate_non_utf8_path() -> PathBuf {
         #[cfg(target_os = "linux")]
         {
             use std::ffi::OsString;
