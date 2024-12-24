@@ -3,12 +3,18 @@
 //pub mod iter;
 pub mod test;
 
-use std::process::Command;
+use std::{
+    cell::Cell,
+    process::Command,
+    time::{Duration, SystemTime},
+};
 
 use color_eyre::{eyre::eyre, Report, Result, Section as _, SectionExt as _};
+use derive_getters::Getters;
 pub use num_traits::Pow;
 #[allow(unused)]
 pub use paste::paste;
+use tracing::warn;
 
 ///derive_units!(_per_s (suffix), [[Kibit, Mibit, Gibit, Tibit]: 1024f64,
 ///                                [kbit, Mbit, Gbit, Tbit]: 1000f64,
@@ -60,5 +66,45 @@ impl Output for Command {
         } else {
             Ok(stdout.into())
         }
+    }
+}
+
+#[derive(Debug, Clone, Getters)]
+pub struct SleepUntil {
+    start: SystemTime,
+    interval: Duration,
+    next_tick: SystemTime,
+
+    make_up_skipped_ticks: bool,
+}
+
+impl SleepUntil {
+    const INSTANTLY: Duration = Duration::from_secs(0);
+
+    pub fn new(interval: Duration, make_up_skipped_ticks: bool) -> Self {
+        let now = SystemTime::now();
+        SleepUntil {
+            start: now,
+            interval,
+            next_tick: now + interval,
+            make_up_skipped_ticks,
+        }
+    }
+
+    #[tracing::instrument]
+    pub fn update(&mut self) -> Duration {
+        let now = SystemTime::now();
+        while now > self.next_tick {
+            self.next_tick += self.interval;
+
+            if self.make_up_skipped_ticks {
+                // if x ticks were skipped, we now have to sleep for 0s x times to make up for it
+                return Self::INSTANTLY;
+            }
+        }
+        self.next_tick.duration_since(now).unwrap_or_else(|e| {
+            warn!(?self, "negative duration calculated. could be a very rare case where the duration calc logic itself was the tipping point into a new interval.\n\nError:\n{e:#}");
+            Self::INSTANTLY
+        })
     }
 }
