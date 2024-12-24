@@ -1,10 +1,9 @@
-#![cfg_attr(nightly, feature(macro_metavar_expr))]
+#![cfg_attr(feature = "nightly", feature(macro_metavar_expr))]
 
 //pub mod iter;
 pub mod test;
 
 use std::{
-    cell::Cell,
     process::Command,
     time::{Duration, SystemTime},
 };
@@ -41,10 +40,24 @@ macro_rules! derive_units {
 
 #[macro_export]
 macro_rules! tracing_dbg {
-    ($level:ident, $val:expr) => {{
+    ($level:ident, $fmt:literal, $val:expr) => {{
         let val = $val;
-        tracing::event!(tracing::Level::$level, "`{}` = {}", stringify!($val), val);
+        ::tracing::event!(
+            ::tracing::Level::$level,
+            concat!($fmt, "`{}` = {:?}"),
+            stringify!($val),
+            val
+        );
         val
+    }};
+    ($fmt:literal, $val:expr) => {{
+        tracing_dbg!(DEBUG, $fmt, $val)
+    }};
+    ($level:ident, $val:expr) => {{
+        tracing_dbg!($level, "", $val)
+    }};
+    ($val:expr) => {{
+        tracing_dbg!(DEBUG, $val)
     }};
 }
 
@@ -102,9 +115,9 @@ impl SleepUntil {
                 return Self::INSTANTLY;
             }
         }
-        self.next_tick.duration_since(now).unwrap_or_else(|e| {
+        tracing_dbg!(self.next_tick.duration_since(now).unwrap_or_else(|e| {
             warn!(?self, "negative duration calculated. could be a very rare case where the duration calc logic itself was the tipping point into a new interval.\n\nError:\n{e:#}");
             Self::INSTANTLY
-        })
+        }))
     }
 }

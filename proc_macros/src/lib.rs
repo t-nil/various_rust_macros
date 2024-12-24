@@ -1,4 +1,4 @@
-#![cfg_attr(nightly, feature(specialization))]
+#![cfg_attr(feature = "nightly", feature(specialization))]
 
 #[cfg(feature = "nightly")]
 pub use conditional_copy::*;
